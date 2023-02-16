@@ -2,11 +2,11 @@
 
 # Diálogo Legislativo - Backend 
 
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DemocraciaEnRed_dialogoLegislativo-core&metric=alert_status)](https://sonarcloud.io/dashboard?id=DemocraciaEnRed_dialogoLegislativo-core)
-[![GitHub license](https://img.shields.io/github/license/DemocraciaEnRed/dialogoLegislativo-core)](https://github.com/DemocraciaEnRed/dialogoLegislativo-core/blob/master/LICENSE)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DemocraciaEnRed_dialogo-legislativo-core&metric=alert_status)](https://sonarcloud.io/dashboard?id=DemocraciaEnRed_dialogo-legislativo-core)
+[![GitHub license](https://img.shields.io/github/license/DemocraciaEnRed/dialogo-legislativo-core)](https://github.com/DemocraciaEnRed/dialogo-legislativo-core/blob/master/LICENSE)
 
 Este es uno de los cuatros modulos que se requieren descargar, hacer setup e instalar cada uno de los repositorios para poder utilizar Diálogo Legislativo.
-Para saber mas del conjunto de modulos que compone Diálogo Legislativo, hace [click aqui](https://github.com/DemocraciaEnRed/dialogoLegislativo) 
+Para saber mas del conjunto de modulos que compone Diálogo Legislativo, hace [click aqui](https://github.com/DemocraciaEnRed/dialogo-legislativo) 
 
 ---
 
