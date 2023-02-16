@@ -10,7 +10,7 @@ Para saber mas del conjunto de modulos que compone Diálogo Legislativo, hace [c
 
 ---
 
-## Setup dialogoLegislativo-core
+## Setup dialogo-legislativo-core
 
 > #### ⚠️ NOTAS IMPORTANTES
 > 
@@ -27,8 +27,8 @@ Ir a la carpeta del repo y instalar las dependencias.
 
 
 ```
-dev/:$ cd dialogoLegislativo-core
-dev/dialogoLegislativo-core:$ npm install
+dev/:$ cd dialogo-legislativo-core
+dev/dialogo-legislativo-core:$ npm install
 ```
 
 Ahora tenemos que crear un archivo `.env` que son nuestras variables de entorno
@@ -46,7 +46,7 @@ NOTIFIER_URL=http://localhost:5000/api
 Comando para ejecutar:
 
 ```
-dev/dialogoLegislativo-core:$ npm run dev
+dev/dialogo-legislativo-core:$ npm run dev
 ```
 
 ### Full reference de enviroment vars
