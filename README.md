@@ -1,6 +1,6 @@
 ![Header](docs/header-doc.png)
 
-# Leyes abiertas - Backend 
+# Diálogo Legislativo - Backend 
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DemocraciaEnRed_dialogoLegislativo-core&metric=alert_status)](https://sonarcloud.io/dashboard?id=DemocraciaEnRed_dialogoLegislativo-core)
 [![GitHub license](https://img.shields.io/github/license/DemocraciaEnRed/dialogoLegislativo-core)](https://github.com/DemocraciaEnRed/dialogoLegislativo-core/blob/master/LICENSE)
