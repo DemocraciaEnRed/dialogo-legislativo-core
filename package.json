@@ -10,6 +10,7 @@
   },
   "scripts": {
     "start": "node server",
+    "debug": "node --inspect server",
     "dev": "nodemon",
     "init": "node scripts/init.js",
     "test": "NODE_ENV=test mocha --recursive --timeout 10000",
