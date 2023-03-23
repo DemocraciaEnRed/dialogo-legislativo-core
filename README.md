@@ -16,7 +16,7 @@ Para saber mas del conjunto de modulos que compone Diálogo Legislativo, hace [c
 > 
 > El siguiente conjunto de sistemas requiere de:
 > - Mongo3.6
-> - Keycloak 4.4.x o 6.0.x
+> - Keycloak > 4.4.x
 > 
 > Sobre Mongo3.6, es necesario que instales mongo 3.6 en tu computadora, con una base de datos llamada "dialogoLegislativo". No hace falta crear alguna collection, eso lo hace la app en inicio.
 > 
@@ -46,39 +46,8 @@ NOTIFIER_URL=http://localhost:5000/api
 Comando para ejecutar:
 
 ```
-dev/dialogo-legislativo-core:$ npm run dev
+dev/dialogo-legislativo-core:$ ./run-dev.sh
 ```
-
-### Full reference de enviroment vars
-
-```yaml
-# App vars
-PORT=3000
-SESSION_SECRET=changeMe
-
-# Database vars
-MONGO_URL=mongodb://localhost/changeMe
-
-# Keycloak 
-AUTH_REALM=changeMe
-AUTH_SERVER_URL=changeMe
-AUTH_CLIENT=changeMe
-# For test env only
-#AUTH_ADMIN_TEST_USERNAME=changeMe
-#AUTH_ADMIN_TEST_PASSWORD=changeMe
-
-# Notifier
-NOTIFIER_URL=http://place-notifier-url
-
-# (Optional) Community defaults
-#COMMUNITY_NAME=changeMe
-#COMMUNITY_COLOR_HEX=3177cc
-
-```
-
-### 📓 Note for production build
-
-- Be sure to use `"keycloak-connect": "^4.8.3"` in `package.json`
 
 ---
 
