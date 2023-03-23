@@ -1,27 +1,27 @@
 version: '3'
 
 services:
-  # postgres: # Base de datos de usuarios
-  #   image: postgres:13.2
-  #   restart: unless-stopped
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - 5432:5432
-  #   volumes:
-  #     - ./tmp/users:/var/lib/postgresql/data
+  postgres: # Base de datos de usuarios
+    image: postgres:13.2
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - 5432:5432
+    volumes:
+      - ./tmp/users:/var/lib/postgresql/data
 
-  # auth: # Aplicación de autenticación
-  #   image: jboss/keycloak:16.0.0
-  #   restart: unless-stopped
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - postgres
-  #   links:
-  #     - postgres
+  auth: # Aplicación de autenticación
+    image: jboss/keycloak:16.0.0
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    links:
+      - postgres
 
   mongo:
     image: mongo:3.6
@@ -30,15 +30,15 @@ services:
     volumes:
       - ./tmp/db:/data/db  
 
-  app:
-    build: .
-    image: democracyos/core:latest
-    volumes: 
-      - .:/usr/src/app
-    env_file: .env
-    ports:
-      - "4000:4000"
-    depends_on:
-      - mongo
-    links:
-      - mongo:27017
+  # app:
+  #   build: .
+  #   image: democracyos/core:latest
+  #   volumes: 
+  #     - .:/usr/src/app
+  #   env_file: .env
+  #   ports:
+  #     - "4000:4000"
+  #   depends_on:
+  #     - mongo
+  #   links:
+  #     - mongo:27017
