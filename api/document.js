@@ -58,6 +58,14 @@ router.route('/')
         }
         results = await Document.retrieve({ published: true }, sort)
         let today = new Date()
+        if(req.session.user){
+          results.forEach((doc) => {
+          doc.userIsApoyado = req.session.user &&
+          doc.apoyos &&
+          doc.apoyos.find(apoyo => apoyo.userId && apoyo.userId.toString() == req.session.user._id) &&
+          true || false
+        })
+        }
         results.forEach((doc) => {
           doc.closed = today > new Date(doc.currentVersion.content.closingDate)
           doc.apoyosCount = doc.apoyos && doc.apoyos.length || 0
@@ -80,6 +88,30 @@ router.route('/')
           //   return (x.closed === y.closed) ? 0 : x.closed ? 1 : -1
           // })
         }
+        if (req.query.created === 'SUPP') {
+          results.sort((a, b) => {
+            if (a.apoyosCount === b.apoyosCount) {
+              return 0
+            }
+            if (a.apoyosCount < b.apoyosCount) {
+              return 1
+            }
+            return -1
+          })
+        }
+        if (req.query.textFilter && req.query.textFilter !== 'null') {
+          const queryAuthor = req.query.textFilter.toLowerCase()
+          results = results.filter((doc) => {
+            const nameAndTitle = `${doc.author.fullname} ${doc.author.fields.party} ${doc.currentVersion.content.title}`.toLowerCase()
+            return nameAndTitle.includes(queryAuthor)
+          })
+        }
+        if (req.query.author && req.query.author !== 'null') {
+          results = results.filter((doc) => {
+            return doc.author._id.toString() === req.query.author
+          })
+        }
+
         if (req.query.tag && req.query.tag !== 'null') {
           const queryTagId = req.query.tag
           // validamos datos de la query, que sea un id de mongo
@@ -292,7 +324,7 @@ router.route('/:id')
    */
   .put(
     middlewares.checkId,
-    auth.keycloak.protect('realm:accountable'),
+    auth.keycloak.protect(['realm:accountable', 'realm:admin']),
     async (req, res, next) => {
       try {
         // Get the document
@@ -300,9 +332,16 @@ router.route('/:id')
         if (!document) {
           throw errors.ErrNotFound('Document not found')
         }
-        // Check if the user is the author of the document
-        if (!req.session.user._id.equals(document.author._id)) {
-          throw errors.ErrForbidden // User is not the author
+        // Check if the user is the author of the document or userAdmin
+        if (!req.session.user._id.equals(document.author._id) && !req.session.user.roles.includes('admin')) {
+          throw errors.ErrForbidden // User is not the author or userAdmin
+        }
+        // Check if userAdmin is changing author
+        if (req.session.user.roles.includes('admin')) {
+          if (document.author._id.toString() !== req.body.content.author) {
+            await Document.update(document._id, {author: ObjectId(req.body.content.author)})
+            delete req.body.content.author
+          }
         }
         // First deal with the decorations! Comments needs to be updated!
         if (req.body.decorations && req.body.decorations.length > 0) {
@@ -379,7 +418,7 @@ router.route('/:id/version/:version')
         // Check if it is published or not (draft)
         if (!document.published) {
           // It's a draft, check if the author is the user who requested it.
-          if (!isTheAuthor) {
+          if (!isTheAuthor && !req.session.user.roles.includes('admin')) {
             // No, Then the user shouldn't be asking for this document.
             throw errors.ErrForbidden
           }
