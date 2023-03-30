@@ -542,6 +542,10 @@ router.route('/:id/comments')
           throw errors.ErrNotFound('Document not found')
         }
         // Document Found
+
+        // The document does not allow comments
+        if (!document.acceptComments) throw errors.ErrClosedComments
+
         // Get the customForm
         const customForm = await CustomForm.get({ _id: document.customForm })
         if (!customForm.fields.allowComments.find((x) => { return x === req.body.field })) {
