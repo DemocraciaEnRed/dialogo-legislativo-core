@@ -349,6 +349,7 @@ router.route('/:id')
         }
         let newDataDocument = {
           published: req.body.published,
+          acceptComments: req.body.acceptComments,
           closed: req.body.closed
         }
         // Retrieve the version of the customForm that the document follows

@@ -26,7 +26,8 @@ exports.create = async function create (documentData, customForm) {
   let documentToSave = {
     author: documentData.author,
     customForm: customForm._id,
-    published: documentData.published
+    published: documentData.published,
+    acceptComments: documentData.acceptComments
   }
   // Save the document, to get the id
   let theDocument = await (new Document(documentToSave)).save()
