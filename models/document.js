@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 const mongoosePaginate = require('mongoose-paginate')
+const mongooseLeanVirtuals = require('mongoose-lean-virtuals');
 
 const ApoyoSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
@@ -25,12 +26,9 @@ const Document = new mongoose.Schema({
   timestamps: true
 })
 
-// Model's Plugin Extensions
-Document.plugin(mongoosePaginate)
+Document.virtual('apoyosCount').get(function () { return this.apoyos && this.apoyos.length || 0 })
 
-Document.virtual('apoyosCount').get(() => this.apoyos && this.apoyos.length || 0)
-
-Document.virtual('emotesCount').get(() => {
+Document.virtual('emoteCount').get(function () {
   return {
     likes: (this.emoteLike && this.emoteLike.length) || 0,
     loves: (this.emoteLove && this.emoteLove.length) || 0,
@@ -39,6 +37,10 @@ Document.virtual('emotesCount').get(() => {
     total: ((this.emoteLike && this.emoteLike.length) || 0) + ((this.emoteLove && this.emoteLove.length) || 0) + ((this.emoteImprove && this.emoteImprove.length) || 0) + ((this.emoteDislike && this.emoteDislike.length) || 0)
   }
 })
+
+// Model's Plugin Extensions
+Document.plugin(mongoosePaginate)
+Document.plugin(mongooseLeanVirtuals);
 
 // Expose Model
 module.exports = mongoose.model('Document', Document)

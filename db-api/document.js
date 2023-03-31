@@ -49,14 +49,67 @@ exports.create = async function create (documentData, customForm) {
 
 // Get document (with its last version)
 exports.get = async function get (query) {
-  let document = await Document.findOne(query).populate({ path: 'author', select: dbUser.exposeAll(false) }).populate('currentVersion').lean()
+  let document = await Document.findOne(query).populate({ path: 'author', select: dbUser.exposeAll(false) }).populate('currentVersion').lean({ virtuals: true })
+  // remove the following fields:
+  // - emoteLike
+  // - emoteDislike
+  // - emoteLove
+  // - emoteImprove
+  delete document.emoteLike
+  delete document.emoteDislike
+  delete document.emoteLove
+  delete document.emoteImprove
   return document
 }
 
-exports.retrieve = async function get (query, sort) {
+exports.retrieve = async function retrieve (query, sort) {
   let theSort = sort || {}
   console.log(theSort)
-  let document = await Document.find(query).populate({ path: 'author', select: dbUser.exposeAll(false) }).populate('currentVersion').sort(theSort).lean()
+  let document = await Document.find(query).populate({ path: 'author', select: dbUser.exposeAll(false) }).populate('currentVersion').sort(theSort).lean({ virtuals: true })
+  // for every document we need to remove the following fields:
+  // - emoteLike
+  // - emoteDislike
+  // - emoteLove
+  // - emoteImprove
+  document.forEach((doc) => {
+    doc.userReaction = null
+    delete doc.emoteLike
+    delete doc.emoteDislike
+    delete doc.emoteLove
+    delete doc.emoteImprove
+  })
+  return document
+}
+
+exports.retrieveWithUserReaction = async function retrieveWithUserReaction (query, sort, userId) {
+  let theSort = sort || {}
+  console.log(theSort)
+  let document = await Document.find(query).populate({ path: 'author', select: dbUser.exposeAll(false) }).populate('currentVersion').sort(theSort).lean({ virtuals: true })
+  // make a copy
+  // for every document we need to check if the user has reacted to it
+  // if so, add the reaction to the document
+  document.forEach((doc) => {
+    doc.userReaction = null
+    if (doc.emoteLike.some((id) => id.equals(userId))) {
+      doc.userReaction = 'like'
+    } else if (doc.emoteDislike.some((id) => id.equals(userId))) {
+      doc.userReaction = 'dislike'
+    } else if (doc.emoteLove.some((id) => id.equals(userId))) {
+      doc.userReaction = 'love'
+    } else if (doc.emoteImprove.some((id) => id.equals(userId))) {
+      doc.userReaction = 'improve'
+    }
+
+    // remove the following fields:
+    // - emoteLike
+    // - emoteDislike
+    // - emoteLove
+    // - emoteImprove
+    delete doc.emoteLike
+    delete doc.emoteDislike
+    delete doc.emoteLove
+    delete doc.emoteImprove
+  })
   return document
 }
 
@@ -66,7 +119,7 @@ exports.list = async function list (query, { limit, page, sort }) {
   optionsPaginate.limit = limit
   optionsPaginate.page = page
   optionsPaginate.lean = true
-  optionsPaginate.populate = [{ path: 'author', select: dbUser.exposeAll(false) }, {path: 'currentVersion'}]
+  optionsPaginate.populate = [{ path: 'author', select: dbUser.exposeAll(false) }, { path: 'currentVersion' }]
   if (sort) {
     optionsPaginate.sort = sort
   }
@@ -138,17 +191,14 @@ exports.remove = function remove (id) {
 exports.apoyar = async function apoyar (documentId, userId) {
   // primero vemos si ya apoyó
   let documentApoyado = await Document.findOne({ _id: documentId, 'apoyos.userId': userId })
-  if (!documentApoyado)
-    return Document.updateOne({_id: documentId}, {'$push': {apoyos: {userId: userId}}})
-  else
-    return documentApoyado
+  if (!documentApoyado) { return Document.updateOne({ _id: documentId }, { '$push': { apoyos: { userId: userId } } }) } else { return documentApoyado }
 }
 
-exports.apoyarAnon = async function apoyarAnon(apoyoToken) {
+exports.apoyarAnon = async function apoyarAnon (apoyoToken) {
   // primero vemos si ya apoyó
   let documentApoyado = await Document.findOne({ _id: apoyoToken.document._id, 'apoyos.email': apoyoToken.email })
-  if (!documentApoyado)
-    await Document.updateOne({_id: apoyoToken.document._id}, {
+  if (!documentApoyado) {
+    await Document.updateOne({ _id: apoyoToken.document._id }, {
       '$push': {
         apoyos: {
           email: apoyoToken.email,
@@ -156,4 +206,115 @@ exports.apoyarAnon = async function apoyarAnon(apoyoToken) {
         }
       }
     })
+  }
+}
+
+exports.react = async function react (documentId, userId, reaction) {
+  // we have 4 arrays of User IDs,
+  // first we need to check if the userID is in one of this arrays:
+  // - emoteLike
+  // - emoteLove
+  // - emoteDislike
+  // - emoteImprove
+  let document = await Document.findOne({ _id: documentId })
+  if (!document) throw errors.ErrNotFound('Document not found')
+  let emoteLike = document.emoteLike || []
+  let emoteLove = document.emoteLove || []
+  let emoteDislike = document.emoteDislike || []
+  let emoteImprove = document.emoteImprove || []
+  let emoteLikeIndex = emoteLike.indexOf(userId)
+  let emoteLoveIndex = emoteLove.indexOf(userId)
+  let emoteDislikeIndex = emoteDislike.indexOf(userId)
+  let emoteImproveIndex = emoteImprove.indexOf(userId)
+
+  // if the user reacted in the same way, we need to remove the reaction
+  if (emoteLikeIndex > -1 && reaction === 'like') {
+    emoteLike.splice(emoteLikeIndex, 1)
+    document.emoteLike = emoteLike
+    return document.save()
+  }
+  if (emoteLoveIndex > -1 && reaction === 'love') {
+    emoteLove.splice(emoteLoveIndex, 1)
+    document.emoteLove = emoteLove
+    return document.save()
+  }
+  if (emoteDislikeIndex > -1 && reaction === 'dislike') {
+    emoteDislike.splice(emoteDislikeIndex, 1)
+    document.emoteDislike = emoteDislike
+    return document.save()
+  }
+  if (emoteImproveIndex > -1 && reaction === 'improve') {
+    emoteImprove.splice(emoteImproveIndex, 1)
+    document.emoteImprove = emoteImprove
+    return document.save()
+  }
+
+  // if the user reacted in a different way, we need to remove the reaction
+  if (emoteLikeIndex > -1 && reaction !== 'like') {
+    emoteLike.splice(emoteLikeIndex, 1)
+  }
+  if (emoteLoveIndex > -1 && reaction !== 'love') {
+    emoteLove.splice(emoteLoveIndex, 1)
+  }
+  if (emoteDislikeIndex > -1 && reaction !== 'dislike') {
+    emoteDislike.splice(emoteDislikeIndex, 1)
+  }
+  if (emoteImproveIndex > -1 && reaction !== 'improve') {
+    emoteImprove.splice(emoteImproveIndex, 1)
+  }
+
+  // now we need to add the user to the array that corresponds to the reaction
+  switch (reaction) {
+    case 'like':
+      emoteLike.push(userId)
+      break
+    case 'love':
+      emoteLove.push(userId)
+      break
+    case 'dislike':
+      emoteDislike.push(userId)
+      break
+    case 'improve':
+      emoteImprove.push(userId)
+      break
+  }
+  // now we need to save the document
+  document.emoteLike = emoteLike
+  document.emoteLove = emoteLove
+  document.emoteDislike = emoteDislike
+  document.emoteImprove = emoteImprove
+  return document.save()
+}
+
+exports.checkIfUserHasReacted = async function checkIfUserHasReacted (documentId, userId) {
+  // we have 4 arrays of User IDs,
+  // first we need to check if the userID is in one of this arrays:
+  // - emoteLike
+  // - emoteLove
+  // - emoteDislike
+  // - emoteImprove
+  let document = await Document.findOne({ _id: documentId })
+  if (!document) throw errors.ErrNotFound('Document not found')
+  let emoteLike = document.emoteLike
+  let emoteLove = document.emoteLove
+  let emoteDislike = document.emoteDislike
+  let emoteImprove = document.emoteImprove
+  let emoteLikeIndex = emoteLike.indexOf(userId)
+  let emoteLoveIndex = emoteLove.indexOf(userId)
+  let emoteDislikeIndex = emoteDislike.indexOf(userId)
+  let emoteImproveIndex = emoteImprove.indexOf(userId)
+  // if the user is in one of the arrays, we need to remove it
+  if (emoteLikeIndex > -1) {
+    return 'like'
+  }
+  if (emoteLoveIndex > -1) {
+    return 'love'
+  }
+  if (emoteDislikeIndex > -1) {
+    return 'dislike'
+  }
+  if (emoteImproveIndex > -1) {
+    return 'improve'
+  }
+  return null
 }

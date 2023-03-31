@@ -57,7 +57,14 @@ router.route('/')
           page: req.query.page || 1
         }
         let published = req.session.user && req.session.user.roles.includes('admin') && req.query.author ? {} : { published: true }
-        results = await Document.retrieve(published, sort)
+        let userId = (req.session.user && req.session.user._id) || null
+        // console.log(req.session.user)
+        if (userId) {
+          results = await Document.retrieveWithUserReaction(published, sort, userId)
+        } else {
+          results = await Document.retrieve(published, sort)
+        }
+        // console.log('results', results)
         let today = new Date()
         if (req.session.user) {
           results.forEach((doc) => {
@@ -291,7 +298,8 @@ router.route('/:id')
         document.closed = isClosed
         let payload = {
           document: document,
-          isAuthor: isTheAuthor
+          isAuthor: isTheAuthor,
+          userReaction: null
         }
         // If the document is closed
         if (isClosed) {
@@ -302,15 +310,28 @@ router.route('/:id')
           payload.contributorsCount = contributors
           payload.contextualCommentsCount = contextualCommentsCount
         }
-
+        // if the session has a user, we need to find if the user has reacted to the document and what reaction
+        if (req.session.user) {
+          let reaction = await Document.checkIfUserHasReacted(req.params.id, req.session.user._id)
+          if (reaction) {
+            payload.userReaction = reaction
+          }
+        }
         payload.document.userIsApoyado = req.session.user &&
           document.apoyos &&
           document.apoyos.find(apoyo => apoyo.userId && apoyo.userId.toString() == req.session.user._id) &&
           true || false
         payload.document.apoyosCount = document.apoyos && document.apoyos.length || 0
+
+        // delete sensitive data (MIGHT BREAK SOMETHING)
         delete payload.document.apoyos
+        // delete payload.document.emoteLike
+        // delete payload.document.emoteLove
+        // delete payload.document.emoteImprove
+        // delete payload.document.emoteDislike
 
         // Deliver the document
+        console.log(payload)
         res.status(status.OK).json(payload)
       } catch (err) {
         next(err)
@@ -396,6 +417,14 @@ router.route('/:id')
           notifier.sendDocumentPublishedNotification(updatedDocument.id)
           updatedDocument = await Document.update(updatedDocument.id, {publishedMailSent: true})
         }
+
+        // delete sensitive data (MIGHT BREAK SOMETHING)
+        // delete updatedDocument.document.apoyos
+        // delete payload.document.emoteLike
+        // delete payload.document.emoteLove
+        // delete payload.document.emoteImprove
+        // delete payload.document.emoteDislike
+
         res.status(status.OK).json(updatedDocument)
       } catch (err) {
         next(err)
@@ -442,6 +471,14 @@ router.route('/:id/version/:version')
           payload.contributorsCount = contributors
           payload.contextualCommentsCount = contextualCommentsCount
         }
+
+        // delete sensitive data
+        delete payload.document.apoyos
+        // delete payload.document.emoteLike
+        // delete payload.document.emoteLove
+        // delete payload.document.emoteImprove
+        // delete payload.document.emoteDislike
+
         // Deliver the document
         res.status(status.OK).json(payload)
       } catch (err) {
@@ -704,105 +741,138 @@ router.route('/:id/comments/:idComment/reply')
     }
   )
 
-router.route('/:id/apoyar').post(
-  auth.keycloak.protect(),
-  middlewares.checkId,
-  async (req, res, next) => {
-    try {
-      let documentId = req.params.id
-      let userId = req.session.user._id
-      await Document.apoyar(documentId, userId)
-      res.status(status.OK).send()
-    } catch (err) {
-      next(err)
-    }
-  }
-)
-router.route('/:id/apoyar-anon').post(
-  middlewares.checkId,
-  async (req, res, next) => {
-    try {
-      const documentId = req.params.id
-      const { nombre_apellido, email, captcha, token } = req.body
+// router.route('/:id/apoyar').post(
+//   auth.keycloak.protect(),
+//   middlewares.checkId,
+//   async (req, res, next) => {
+//     try {
+//       let documentId = req.params.id
+//       let userId = req.session.user._id
+//       await Document.apoyar(documentId, userId)
+//       res.status(status.OK).send()
+//     } catch (err) {
+//       next(err)
+//     }
+//   }
+// )
+// router.route('/:id/apoyar-anon').post(
+//   middlewares.checkId,
+//   async (req, res, next) => {
+//     try {
+//       const documentId = req.params.id
+//       const { nombre_apellido, email, captcha, token } = req.body
 
-      // comprobamos captcha
-      const captchaHash = crypto.createHash('sha256').update(captcha.toLowerCase()).digest('hex')
-      if (!captcha || captchaHash != token.toLowerCase())
-        return res.status(500).json({error: 'Texto de imagen incorrecto'})
-      log.info('Captcha válido');
+//       // comprobamos captcha
+//       const captchaHash = crypto.createHash('sha256').update(captcha.toLowerCase()).digest('hex')
+//       if (!captcha || captchaHash != token.toLowerCase())
+//         return res.status(500).json({error: 'Texto de imagen incorrecto'})
+//       log.info('Captcha válido');
 
-      // comprobamos si ese email no tiene un apoyo ya efectuado
-      const hasApoyado = await Document.get({ _id: documentId, 'apoyos.email': email })
-      if (hasApoyado)
-        return res.status(500).json({error: 'Usted ya ha apoyado el proyecto'})
+//       // comprobamos si ese email no tiene un apoyo ya efectuado
+//       const hasApoyado = await Document.get({ _id: documentId, 'apoyos.email': email })
+//       if (hasApoyado)
+//         return res.status(500).json({error: 'Usted ya ha apoyado el proyecto'})
 
-      // que siga abierto (nunca se debería llegar acá normalmente)
-      const document = await Document.get({ _id: documentId })
-      const isClosed = new Date() > new Date(document.currentVersion.content.closingDate)
-      if (isClosed)
-        return res.status(500).json({error: 'El proyecto ya finalizó el periodo de aportes'})
+//       // que siga abierto (nunca se debería llegar acá normalmente)
+//       const document = await Document.get({ _id: documentId })
+//       const isClosed = new Date() > new Date(document.currentVersion.content.closingDate)
+//       if (isClosed)
+//         return res.status(500).json({error: 'El proyecto ya finalizó el periodo de aportes'})
 
-      // comprobamos si ya hay un apoyo en proceso de validación
-      const existingApoyoToken = await ApoyoToken.getByEmail(email)
-      if (existingApoyoToken){
-        let firstDate = existingApoyoToken.createdAt,
-          secondDate = new Date(),
-          timeDifference = Math.abs(secondDate.getTime() - firstDate.getTime());
-        let instevaloMs = 1000 *60 *60 *48; //48 horas
-        if (timeDifference < instevaloMs)
-          return res.status(500).json({error: 'Ya se envió un mensaje de validación a este mail'})
-        else
-          await existingApoyoToken.remove()
-      }
+//       // comprobamos si ya hay un apoyo en proceso de validación
+//       const existingApoyoToken = await ApoyoToken.getByEmail(email)
+//       if (existingApoyoToken){
+//         let firstDate = existingApoyoToken.createdAt,
+//           secondDate = new Date(),
+//           timeDifference = Math.abs(secondDate.getTime() - firstDate.getTime());
+//         let instevaloMs = 1000 *60 *60 *48; //48 horas
+//         if (timeDifference < instevaloMs)
+//           return res.status(500).json({error: 'Ya se envió un mensaje de validación a este mail'})
+//         else
+//           await existingApoyoToken.remove()
+//       }
 
-      // creamos token para validación de apoyo
-      const uuid = uuidv4();
-      const apoyo = await ApoyoToken.create({
-        document: ObjectId(documentId),
-        email,
-        token: uuid,
-        nombreApellido: nombre_apellido
-      })
+//       // creamos token para validación de apoyo
+//       const uuid = uuidv4();
+//       const apoyo = await ApoyoToken.create({
+//         document: ObjectId(documentId),
+//         email,
+//         token: uuid,
+//         nombreApellido: nombre_apellido
+//       })
 
-      // scheduleamos mail de validación
-      notifier.sendValidarApoyoNotification(documentId, apoyo._id)
+//       // scheduleamos mail de validación
+//       notifier.sendValidarApoyoNotification(documentId, apoyo._id)
 
-      res.status(status.OK).send()
+//       res.status(status.OK).send()
 
-    } catch (err) {
-      next(err)
-    }
-  }
-)
+//     } catch (err) {
+//       next(err)
+//     }
+//   }
+// )
 
-router.route('/apoyo-anon-validar/:uuid').get(
+// router.route('/apoyo-anon-validar/:uuid').get(
+//     async (req, res, next) => {
+//       try {
+//         const uuid = req.params.uuid
+
+//         const apoyo = await ApoyoToken.getByUuid(uuid).populate('document')
+
+//         if (!apoyo)
+//           return res.status(500).json({error: 'Apoyo inexistente'})
+
+//         // efectuamos apoyo
+//         await Document.apoyarAnon(apoyo)
+
+//         // borramos apoyoToken
+//         apoyo.remove()
+
+//         // traemos data actualizada
+//         const document = await Document.get({ _id: apoyo.document._id })
+
+//         // borramos apoyos con mails de gente!
+//         delete document.apoyos
+
+//         res.status(status.OK).json({document})
+//       } catch (err) {
+//         next(err)
+//       }
+//     }
+//   )
+
+router.route('/:id/react/:reaction')
+  .post(
+    auth.keycloak.protect(),
+    middlewares.checkId,
+    middlewares.checkReaction,
     async (req, res, next) => {
       try {
-        const uuid = req.params.uuid
+        // Get Document ID
+        let documentId = req.params.id
+        // Get User ID
+        let userId = req.session.user._id
+        // Get Reaction
+        let reaction = req.params.reaction
 
-        const apoyo = await ApoyoToken.getByUuid(uuid).populate('document')
+        // get the Document
+        const document = await Document.get({ _id: req.params.id })
+        const isClosed = new Date() > new Date(document.currentVersion.content.closingDate)
+        if (isClosed) {
+          throw errors.ErrForbidden // no se puede reaccionar a un proyecto cerrado
+        }
 
-        if (!apoyo)
-          return res.status(500).json({error: 'Apoyo inexistente'})
+        let theDocument = await Document.react(documentId, userId, reaction)
 
-        // efectuamos apoyo
-        await Document.apoyarAnon(apoyo)
-
-        // borramos apoyoToken
-        apoyo.remove()
-
-        // traemos data actualizada
-        const document = await Document.get({ _id: apoyo.document._id })
-
-        // borramos apoyos con mails de gente!
-        delete document.apoyos
-
-        res.status(status.OK).json({document})
+        res.status(status.OK).json({
+          emoteCount: theDocument.emoteCount
+        })
       } catch (err) {
         next(err)
       }
     }
   )
+
 
 router.use(json2xls.middleware)
 
