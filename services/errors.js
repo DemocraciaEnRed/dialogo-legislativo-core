@@ -112,6 +112,11 @@ const ErrInvalidData = (metadata) => new APIError('Data doesn\'t follow the spec
   status: BAD_REQUEST
 }, { errors: metadata })
 
+const ErrClosedComments = new APIError('The document does not allow comments', {
+  translationKey: 'DOCUMENT_CLOSED_COMMENTS',
+  status: FORBIDDEN
+})
+
 module.exports = {
   APIError,
   ErrNotFound,
@@ -129,5 +134,6 @@ module.exports = {
   ErrForbidden,
   ErrClosed,
   ErrInvalidJSONSchema,
-  ErrInvalidData
+  ErrInvalidData,
+  ErrClosedComments
 }
