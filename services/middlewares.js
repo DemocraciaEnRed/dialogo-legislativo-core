@@ -15,6 +15,19 @@ exports.checkId = async (req, res, next) => {
   }
 }
 
+exports.checkReaction = async (req, res, next) => {
+  try {
+    // reaction comes in the URL as param and is a string and can be 'like', 'love', 'improve' or 'dislike'
+    let reaction = req.params.reaction
+    if (reaction !== 'like' && reaction !== 'love' && reaction !== 'improve' && reaction !== 'dislike') {
+      throw errors.ErrNotFound()
+    }
+    next()
+  } catch (err) {
+    next(err)
+  }
+}
+
 exports.bindUserToSession = async (req, res, next) => {
   try {
     // Check if there is a keycloak user in req
