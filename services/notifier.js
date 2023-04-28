@@ -12,6 +12,7 @@ exports.sendCommentNotification = (notificationType, commentId) => {
   http.post(`${NOTIFIER_URL}/send-email`, payload).then((response) => {
     log.info(response.data.message, payload)
   }).catch((error) => {
+    console.log(error)
     log.error('ERROR Sending Email', {
       meta: payload,
       message: error.message,
@@ -28,6 +29,7 @@ exports.sendNewCommentNotification = (notificationType, commentId) => {
   http.post(`${NOTIFIER_URL}/comment-new`, payload).then((response) => {
     log.info(response.data.message, payload)
   }).catch((error) => {
+    console.log(error)
     log.error('ERROR Sending Email', {
       meta: payload,
       message: error.message,
@@ -44,6 +46,7 @@ exports.setDocumentClosesNotification = (documentId, closingDate) => {
   http.post(`${NOTIFIER_URL}/set-document-closes`, payload).then((response) => {
     log.info(response.data.message, payload)
   }).catch((error) => {
+    console.log(error)
     log.error('ERROR Setting document closes event', {
       error: error.message,
       meta: payload,
@@ -59,6 +62,7 @@ exports.sendDocumentPublishedNotification = (documentId) => {
   http.post(`${NOTIFIER_URL}/document-published`, payload).then((response) => {
     log.info(response && response.data && response.data.message, payload)
   }).catch((error) => {
+    console.log(error)
     log.error('ERROR Sending Email', {
       meta: payload,
       message: error.message,
@@ -76,6 +80,7 @@ exports.sendValidarApoyoNotification = (documentId, tokenId) => {
   http.post(`${NOTIFIER_URL}/apoyo-validacion`, payload).then((response) => {
     log.info(response && response.data && response.data.message, payload)
   }).catch((error) => {
+    console.log(error)
     log.error('ERROR Sending Email', {
       meta: payload,
       message: error.message,
