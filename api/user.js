@@ -13,6 +13,7 @@ router.route('/')
  * @apiGroup User
  */
   .get(
+    auth.keycloak.protect('realm:admin'),
     async (req, res, next) => {
       try {
         const search = new RegExp(`^${req.query.search}`,'i')
