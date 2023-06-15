@@ -999,30 +999,38 @@ router.route('/my-documents/export-apoyos-xls').get(
         const currentContent = doc.currentVersion.content
         const contributions = doc.currentVersion.contributions
         const docClosed = today > new Date(currentContent.closingDate)
-        const apoyosCount = doc.apoyos && doc.apoyos.length | 0
-        let apoyosMails = []
+        
+        const emoteTotalCount = doc.emoteCount && doc.emoteCount.total
+        const emoteLikeCount = doc.emoteCount && doc.emoteCount.likes
+        const emoteLoveCount = doc.emoteCount && doc.emoteCount.loves
+        const emoteImproveCount = doc.emoteCount && doc.emoteCount.improve
+        const emoteDislikeCount = doc.emoteCount && doc.emoteCount.dislike
+        // let apoyosMails = []
+        // if (doc.apoyos)
+        //   for (const apoyo of doc.apoyos) {
+        //     let mail = 'sin mail'
+        //     if (apoyo.email)
+        //       mail = apoyo.email
+        //     else if (apoyo.userId) {
+        //       const user = await User.get({_id: apoyo.userId}, true)
+        //       if (user && user.email)
+        //         mail = user.email
+        //     }
+        //     apoyosMails.push(mail)
+        //   }
 
-        if (doc.apoyos)
-          for (const apoyo of doc.apoyos) {
-            let mail = 'sin mail'
-            if (apoyo.email)
-              mail = apoyo.email
-            else if (apoyo.userId) {
-              const user = await User.get({_id: apoyo.userId}, true)
-              if (user && user.email)
-                mail = user.email
-            }
-            apoyosMails.push(mail)
+          const documentData = {
+            'Fecha creación': formatXlsDate(doc.createdAt),
+            'Título': escapeTxt(currentContent.title),
+            'Publicado': doc.published ? 'Sí' : 'No',
+            'Cerrado': docClosed ? 'Sí' : 'No',
+            'Total de reacciones': emoteTotalCount,
+            'Me gusta': emoteLikeCount,
+            'Me encanta': emoteLoveCount,
+            'Lo mejoraría': emoteImproveCount,
+            'Me disgusta': emoteDislikeCount,
+            // 'Mails de reacciones': escapeTxt(emotionsMails.join(',')),
           }
-
-        const documentData = {
-          'Fecha creación': formatXlsDate(doc.createdAt),
-          'Título': escapeTxt(currentContent.title),
-          'Publicado': doc.published ? 'Sí' : 'No',
-          'Cerrado': docClosed ? 'Sí' : 'No',
-          'Apoyos totales': apoyosCount,
-          'Apoyos mails': escapeTxt(apoyosMails.join(','))
-        }
 
         exportRows.push(documentData)
       }))//end await Promise.all
